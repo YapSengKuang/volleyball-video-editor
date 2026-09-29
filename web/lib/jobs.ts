@@ -39,6 +39,7 @@ type JobRecord = {
   phase: string | null;
   error: string | null;
   warning: string | null;
+  eta_seconds: number | null;
   created_at: Date;
   expires_at: Date | null;
 };
@@ -236,6 +237,7 @@ export async function publicJob(job: JobRecord, segments: SegmentRow[]) {
       phase: job.phase,
       error: job.error,
       warning: job.warning,
+      etaSeconds: job.eta_seconds == null ? null : Number(job.eta_seconds),
       createdAt: job.created_at,
       expiresAt: job.expires_at,
       playbackUrl,

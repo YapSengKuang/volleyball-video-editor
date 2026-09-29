@@ -46,14 +46,14 @@ def claim(conn, from_status: str, to_status: str, phase: str):
     return row
 
 
-def set_progress(conn, job_id: str, progress: float, phase: str) -> None:
+def set_progress(conn, job_id: str, progress: float, phase: str, eta_seconds: float | None = None) -> None:
     conn.execute(
         """
         UPDATE jobs
-        SET progress = %s, phase = %s, updated_at = now()
+        SET progress = %s, phase = %s, eta_seconds = %s, updated_at = now()
         WHERE id = %s
         """,
-        (progress, phase, job_id),
+        (progress, phase, eta_seconds, job_id),
     )
     conn.commit()
 

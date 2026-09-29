@@ -11,6 +11,7 @@ from analyze import (
     propose,
     propose_for_file,
 )
+from ball import Hit, detect_rallies, moving_hits, rallies_from_hits
 
 
 def kept(segments, second: float) -> bool:
@@ -62,7 +63,16 @@ class SegmentTests(unittest.TestCase):
         self.assertTrue(kept(segments, 12))
 
     def test_court_mask_keeps_the_near_court(self) -> None:
-        mask = court_mask(20, 20, [(0.0, 0.05), (0.45, 0.05), (0.45, 0.95), (0.0, 0.95)])
+        mask = court_mask(
+            20,
+            20,
+            [
+                {"x": 0.0, "y": 0.05},
+                {"x": 0.45, "y": 0.05},
+                {"x": 0.45, "y": 0.95},
+                {"x": 0.0, "y": 0.95},
+            ],
+        )
         self.assertGreater(int(mask[:, 2].sum()), 10)
         self.assertEqual(int(mask[:, 18].sum()), 0)
 
@@ -77,6 +87,48 @@ class SegmentTests(unittest.TestCase):
     def test_over_duration(self) -> None:
         with self.assertRaises(DurationError):
             assert_duration(10, limit=1)
+
+
+class BallStateTests(unittest.TestCase):
+    def test_gap_ends_the_rally_and_pads_it(self) -> None:
+        fps = 10.0
+        mask = np.zeros(200, dtype=bool)
+        mask[30:80] = True
+        clips = detect_rallies(mask, fps, duration=20.0)
+        self.assertEqual(len(clips), 1)
+        start, end = clips[0]
+        self.assertAlmostEqual(start, 3.0 - 1.5)
+        self.assertAlmostEqual(end, 7.9 + 2.0, places=1)
+
+    def test_three_second_gap_splits_rallies(self) -> None:
+        fps = 10.0
+        mask = np.zeros(300, dtype=bool)
+        mask[10:40] = True
+        mask[80:120] = True
+        clips = detect_rallies(mask, fps, duration=30.0)
+        self.assertEqual(len(clips), 2)
+
+    def test_slow_ball_does_not_extend_the_point(self) -> None:
+        fast = [
+            Hit(time_s=1.0 + index * 0.2, cx=0.1 + index * 0.08, cy=0.4, width_px=20, conf=0.8)
+            for index in range(12)
+        ]
+        slow = [
+            Hit(time_s=6.0 + index * 0.2, cx=0.5 + index * 0.004, cy=0.6, width_px=20, conf=0.8)
+            for index in range(15)
+        ]
+        clips = rallies_from_hits(fast + slow, duration=12.0, corners=None)
+        self.assertEqual(len(clips), 1)
+        self.assertLess(clips[0][1], 5.5)
+
+    def test_ball_outside_the_court_is_ignored(self) -> None:
+        corners = [(0.0, 0.1), (0.4, 0.1), (0.4, 0.9), (0.0, 0.9)]
+        outside = [
+            Hit(time_s=1.0 + index * 0.25, cx=0.75 + (index % 2) * 0.12, cy=0.45, width_px=20, conf=0.9)
+            for index in range(10)
+        ]
+        self.assertEqual(len(rallies_from_hits(outside, duration=8.0, corners=None)), 1)
+        self.assertEqual(rallies_from_hits(outside, duration=8.0, corners=corners), [])
 
 
 class FixtureTests(unittest.TestCase):

@@ -16,7 +16,7 @@ from collections.abc import Iterable
 
 import numpy as np
 
-from config import ANALYZE_TIMEOUT_SECONDS, FFMPEG_THREADS, MAX_DURATION_SECONDS
+from config import ANALYZE_TIMEOUT_SECONDS, FFMPEG_THREADS, MAX_DURATION_SECONDS, PROXY_FPS, PROXY_HEIGHT
 
 WHISTLE_LOW_HZ = 2500
 WHISTLE_HIGH_HZ = 4500
@@ -236,7 +236,13 @@ def bucket_scores(diffs: list[float], fps: float, duration: float) -> np.ndarray
 
 
 def order_corners(points: list) -> np.ndarray:
-    pts = np.asarray(points, dtype=np.float64)
+    pairs = []
+    for point in points:
+        if isinstance(point, dict):
+            pairs.append((float(point["x"]), float(point["y"])))
+        else:
+            pairs.append((float(point[0]), float(point[1])))
+    pts = np.asarray(pairs, dtype=np.float64)
     if pts.shape != (4, 2):
         raise ValueError("Mark all four corners of the court.")
     center = pts.mean(axis=0)
@@ -433,7 +439,7 @@ def build_proxy(source: str, dest: str, duration: float, on_progress=None) -> No
         "-map",
         "0:v:0",
         "-vf",
-        "scale=-2:480,fps=10",
+        f"scale=-2:{PROXY_HEIGHT},fps={PROXY_FPS:g}",
         "-c:v",
         "libx264",
         "-preset",
@@ -508,26 +514,69 @@ def propose_for_file(
         raise RuntimeError("This file has no video track.")
     proxy = f"{path}.proxy.mkv"
 
-    def report(fraction: float, phase: str) -> None:
+    def report(overall: float, phase: str, step: float) -> None:
         if on_progress:
-            on_progress(fraction, phase)
+            on_progress(overall, phase, step)
 
     try:
-        report(0.02, "Compressing a preview")
+        report(0.02, "Checking duration", 0.0)
+
+        def clock_label(seconds: float) -> str:
+            whole = max(0, int(seconds))
+            return f"{whole // 60}:{whole % 60:02d}"
+
+        report(0.04, "Compressing a preview", 0.0)
         build_proxy(
             path,
             proxy,
             duration,
-            on_progress=lambda fraction: report(0.05 + 0.6 * fraction, "Compressing a preview"),
+            on_progress=lambda fraction: report(
+                0.04 + 0.14 * fraction,
+                f"Compressing a preview — {clock_label(fraction * duration)} of {clock_label(duration)}",
+                fraction,
+            ),
         )
-        report(0.68, "Finding rallies")
-        levels, had_audio = audio_energy(proxy, duration)
+        total_frames = max(1, int(duration * PROXY_FPS))
+        report(0.18, "Looking for the ball", 0.0)
+        ball_clips: list[tuple[float, float]] = []
+        try:
+            from ball import rallies_from_hits, scan_ball
+
+            hits = scan_ball(
+                proxy,
+                corners,
+                duration,
+                on_progress=lambda fraction: report(
+                    0.18 + 0.74 * fraction,
+                    f"Looking for the ball — {int(fraction * total_frames):,} of {total_frames:,} frames",
+                    fraction,
+                ),
+            )
+            ball_clips = rallies_from_hits(hits, duration, corners)
+        except Exception:
+            import traceback
+
+            traceback.print_exc()
+            hits = []
+            ball_clips = []
+        if ball_clips:
+            report(0.96, "Marking the rallies", 1.0)
+            warning = None if corners else (
+                "The ball was tracked in the whole frame. Mark your court so the next court's ball is left out."
+            )
+            return to_clips(ball_clips, duration), warning, duration
+        report(0.2, "Finding rallies from movement", 0.0)
         scores = motion_scores(
             proxy,
             duration,
             corners=corners,
-            on_progress=lambda fraction: report(0.7 + 0.25 * fraction, "Finding rallies"),
+            on_progress=lambda fraction: report(
+                0.2 + 0.7 * fraction,
+                "Finding rallies from movement",
+                fraction,
+            ),
         )
+        levels, had_audio = audio_energy(proxy, duration)
         segments, warning = propose(
             scores,
             duration,
@@ -535,6 +584,10 @@ def propose_for_file(
             had_audio=had_audio,
             used_court=bool(corners),
         )
+        if warning:
+            warning = "The ball was hard to see, so rallies were based on movement inside the court. " + warning
+        else:
+            warning = "The ball was hard to see, so rallies were based on movement inside the court."
         return segments, warning, duration
     finally:
         if os.path.exists(proxy):

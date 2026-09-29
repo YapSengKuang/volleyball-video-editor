@@ -25,6 +25,27 @@ def _free_work(path: str) -> None:
     shutil.rmtree(path, ignore_errors=True)
 
 
+class StepClock:
+    """Estimates remaining time from how fast the current step is moving."""
+
+    def __init__(self) -> None:
+        self.phase = ""
+        self.started = 0.0
+
+    def remaining(self, phase: str, fraction: float) -> float | None:
+        now = time.time()
+        if phase != self.phase:
+            self.phase = phase
+            self.started = now
+            return None
+        if fraction < 0.04:
+            return None
+        elapsed = now - self.started
+        if elapsed < 3:
+            return None
+        return max(0.0, elapsed * (1.0 - fraction) / fraction)
+
+
 def analyze_job(conn, job) -> None:
     folder = _work_path(str(job["id"]))
     source = os.path.join(folder, "source")
@@ -33,11 +54,17 @@ def analyze_job(conn, job) -> None:
         needed = int(job["size_bytes"]) * 2 + 1024**3
         if usage.free < needed:
             raise RuntimeError("Not enough free disk to process this game. It was removed.")
-        set_progress(conn, job["id"], 0.05, "Checking duration")
+        set_progress(conn, job["id"], 0.02, "Checking the file")
         download(job["source_key"], source)
+        clock = StepClock()
 
-        def on_progress(fraction: float, phase: str = "Finding rallies") -> None:
-            set_progress(conn, job["id"], min(0.98, 0.08 + 0.9 * fraction), phase)
+        def on_progress(fraction: float, phase: str = "Finding rallies", step: float | None = None) -> None:
+            key = phase.split(" — ")[0]
+            eta = clock.remaining(key, step if step is not None else fraction)
+            # The ball scan takes about ten times as long as the preview.
+            if key == "Compressing a preview" and eta is not None:
+                eta = eta * 11
+            set_progress(conn, job["id"], min(0.98, fraction), phase, eta)
 
         raw_corners = job.get("court_corners")
         corners = json.loads(raw_corners) if raw_corners else None
@@ -78,17 +105,16 @@ def export_job(conn, job) -> None:
         keeps = [(seg["start"], seg["end"]) for seg in segments if seg["keep"]]
         if not keeps:
             raise RuntimeError("Nothing is marked to keep.")
-        set_progress(conn, job["id"], 0.02, "Preparing export")
+        set_progress(conn, job["id"], 0.02, "Preparing the original video")
         download(job["source_key"], source)
+        clock = StepClock()
 
         def on_progress(fraction: float, phase: str | None = None) -> None:
             done = int(fraction * len(keeps))
-            set_progress(
-                conn,
-                job["id"],
-                min(0.95, fraction),
-                phase or f"Exporting clip {min(len(keeps), max(1, done))} of {len(keeps)}",
-            )
+            label = phase or f"Exporting clip {min(len(keeps), max(1, done))} of {len(keeps)}"
+            key = "Joining the full game" if label.startswith("Joining") else "Exporting clips"
+            eta = clock.remaining(key, fraction)
+            set_progress(conn, job["id"], min(0.95, fraction), label, eta)
 
         export_keeps(source, keeps, dest, merged, on_progress)
         output_key = f"outputs/{job['id']}.zip"
@@ -186,6 +212,7 @@ def main() -> None:
     conn.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS merged_key TEXT")
     conn.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS merged_bytes BIGINT")
     conn.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS court_corners TEXT")
+    conn.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS eta_seconds DOUBLE PRECISION")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS corrections (

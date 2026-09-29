@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { formatClock } from "@/lib/time";
+import { formatClock, formatRemaining } from "@/lib/time";
 import { CourtPicker } from "./court-picker";
 
 type Segment = {
@@ -19,6 +19,7 @@ type Job = {
   durationSeconds: number | null;
   progress: number;
   phase: string | null;
+  etaSeconds: number | null;
   error: string | null;
   warning: string | null;
   expiresAt: string | null;
@@ -231,7 +232,14 @@ export function JobView({ id }: { id: string }) {
         <div className="bar" role="progressbar" aria-valuenow={Math.round(job.progress * 100)} aria-valuemin={0} aria-valuemax={100}>
           <span style={{ width: `${Math.round(job.progress * 100)}%` }} />
         </div>
-        <p className="note">The preview is 480p. Rally times are saved, then the original file is cut.</p>
+        <p className="note">
+          {Math.round(job.progress * 100)}%
+          {job.etaSeconds != null ? ` · ${formatRemaining(job.etaSeconds)}` : job.status === "analyzing" ? " · Estimating time…" : ""}
+        </p>
+        <p className="note">
+          The ball scan runs on this computer&apos;s processor, a few times a second. Giving Docker more CPU cores in
+          Docker Desktop settings makes it finish sooner. A graphics card does not speed up this install.
+        </p>
       </section>
     );
   }
@@ -247,9 +255,8 @@ export function JobView({ id }: { id: string }) {
       <div className="panel">
         <h1>{job.filename}</h1>
         <p className="note">
-          A rally is play that keeps moving inside your court for at least a few seconds. The clip starts about two
-          seconds before that and ends about three seconds after the court goes quiet. Warmup hitting on your own
-          court can still appear — uncheck it.
+          Rallies follow the ball while it is moving inside your court. Serve setup and walking the ball back are left
+          out. Each clip has a little time before the first touch and after the last one.
         </p>
         {job.warning && <p className="warning">{job.warning}</p>}
         {job.error && <p className="error">{job.error}</p>}
@@ -367,7 +374,10 @@ export function JobView({ id }: { id: string }) {
             <div className="bar" role="progressbar" aria-valuenow={Math.round(job.progress * 100)} aria-valuemin={0} aria-valuemax={100}>
               <span style={{ width: `${Math.round(job.progress * 100)}%` }} />
             </div>
-            <p className="note">{job.phase}</p>
+            <p className="note">
+              {job.phase}
+              {job.etaSeconds != null ? ` · ${formatRemaining(job.etaSeconds)}` : " · Estimating time…"}
+            </p>
           </>
         )}
         {job.expiresAt && <p className="note">The game and the clips are deleted 24 hours after processing finishes.</p>}

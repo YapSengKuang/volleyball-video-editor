@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatBytes, formatHours } from "@/lib/time";
+import { formatBytes, formatHours, formatRemaining } from "@/lib/time";
 
 type Limits = {
   maxUploadBytes: number;
@@ -34,6 +34,8 @@ export function UploadForm() {
   const router = useRouter();
   const [limits, setLimits] = useState<Limits>(fallbackLimits);
   const [progress, setProgress] = useState<number | null>(null);
+  const [uploadEta, setUploadEta] = useState<number | null>(null);
+  const uploadStarted = useRef(0);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +51,8 @@ export function UploadForm() {
     setError(null);
     setMessage(file.size > 1024 ** 3 ? "Large game. Uploading and finding rallies will take a while." : null);
     setProgress(0);
+    setUploadEta(null);
+    uploadStarted.current = performance.now();
     try {
       const created = await postJson("/api/jobs", {
         filename: file.name,
@@ -81,7 +85,12 @@ export function UploadForm() {
           if (!etag) throw new Error(lastError);
           etags.push({ partNumber, etag });
           uploaded += slice.size;
-          setProgress(uploaded / file.size);
+          const ratio = uploaded / file.size;
+          setProgress(ratio);
+          const elapsed = (performance.now() - uploadStarted.current) / 1000;
+          if (ratio > 0.05 && elapsed > 2) {
+            setUploadEta((elapsed * (1 - ratio)) / ratio);
+          }
         });
       }
       etags.sort((a, b) => a.partNumber - b.partNumber);
@@ -89,6 +98,7 @@ export function UploadForm() {
       router.push(`/jobs/${id}`);
     } catch (err) {
       setProgress(null);
+      setUploadEta(null);
       setError(err instanceof Error ? err.message : "Upload failed.");
     }
   }
@@ -97,13 +107,12 @@ export function UploadForm() {
     <section className="panel">
       <h1>Upload a game</h1>
       <p className="lede">
-        The editor makes a small 480p preview, finds rallies from movement inside the court you mark, then cuts those
-        times out of the original as separate clips or one highlight reel.
+        The editor makes a small preview, follows the ball with a lightweight detector, and cuts each rally from the
+        original. A ball that is only being held or walked back does not keep the point going.
       </p>
       <p className="note">
-        Club gyms are often noisy and may not use a whistle. After the upload you mark your four court corners so the
-        courts beside you are left out. A rally is a few seconds of play that keeps moving, with a little time before
-        the serve and after the ball dies.
+        Mark your court so a ball on the next court is ignored. A rally runs from the first moving ball until the ball
+        has been gone for about three seconds, with a short roll before the serve and after the point.
       </p>
       <div className="limits" aria-label="Limits">
         <span>Up to {formatBytes(limits.maxUploadBytes)}</span>
@@ -126,9 +135,15 @@ export function UploadForm() {
         <p>One game can be uploading at a time. You get one file per rally, not one long cut.</p>
       </label>
       {progress !== null && (
-        <div className="bar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} role="progressbar">
-          <span style={{ width: `${Math.round(progress * 100)}%` }} />
-        </div>
+        <>
+          <div className="bar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} role="progressbar">
+            <span style={{ width: `${Math.round(progress * 100)}%` }} />
+          </div>
+          <p className="note">
+            Uploading — {Math.round(progress * 100)}%
+            {uploadEta != null ? ` · ${formatRemaining(uploadEta)}` : " · Estimating time…"}
+          </p>
+        </>
       )}
       {message && <p className="note">{message}</p>}
       {error && (

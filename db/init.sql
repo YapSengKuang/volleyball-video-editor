@@ -11,7 +11,7 @@ CREATE TABLE jobs (
   merged_bytes BIGINT,
   upload_id TEXT,
   duration_seconds DOUBLE PRECISION,
-  progress DOUBLE PRECISION NOT NULL DEFAULT 0,
+  eta_seconds DOUBLE PRECISION,
   phase TEXT,
   error TEXT,
   warning TEXT,

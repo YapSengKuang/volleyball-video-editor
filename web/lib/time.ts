@@ -15,6 +15,15 @@ export function formatClock(seconds: number): string {
   return `${minutes}:${String(secs).padStart(2, "0")}`;
 }
 
+export function formatRemaining(seconds: number): string {
+  const whole = Math.max(0, Math.round(seconds));
+  if (whole < 45) return "Less than a minute left";
+  const minutes = Math.round(whole / 60);
+  if (minutes < 60) return `About ${minutes} min left`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `About ${hours} hr left` : `About ${hours} hr ${rest} min left`;
+}
 export function formatHours(seconds: number): string {
   const hours = seconds / 3600;
   return `${Number.isInteger(hours) ? hours : hours.toFixed(1)} hours`;
