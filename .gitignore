@@ -1,0 +1,9 @@
+node_modules
+.next
+__pycache__
+*.pyc
+.DS_Store
+.env
+*.tsbuildinfo
+web/.next
+work
