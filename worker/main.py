@@ -117,10 +117,8 @@ def export_job(conn, job) -> None:
             set_progress(conn, job["id"], min(0.95, fraction), label, eta)
 
         export_keeps(source, keeps, dest, merged, on_progress)
-        output_key = f"outputs/{job['id']}.zip"
-        merged_key = f"outputs/{job['id']}-full.mp4"
-        upload(dest, output_key, "application/zip")
-        upload(merged, merged_key, "video/mp4")
+        output_key = upload(dest, f"outputs/{job['id']}.zip", "application/zip")
+        merged_key = upload(merged, f"outputs/{job['id']}-full.mp4", "video/mp4")
         output_bytes = os.path.getsize(dest)
         merged_bytes = os.path.getsize(merged)
         conn.execute(
@@ -213,6 +211,7 @@ def main() -> None:
     conn.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS merged_bytes BIGINT")
     conn.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS court_corners TEXT")
     conn.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS eta_seconds DOUBLE PRECISION")
+    conn.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS progress DOUBLE PRECISION NOT NULL DEFAULT 0")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS corrections (

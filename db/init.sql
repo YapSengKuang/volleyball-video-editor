@@ -13,6 +13,7 @@ CREATE TABLE jobs (
   duration_seconds DOUBLE PRECISION,
   eta_seconds DOUBLE PRECISION,
   phase TEXT,
+  progress DOUBLE PRECISION NOT NULL DEFAULT 0,
   error TEXT,
   warning TEXT,
   client_ip TEXT NOT NULL,

@@ -15,6 +15,7 @@ export const config = {
   s3AccessKey: process.env.S3_ACCESS_KEY ?? "minio",
   s3SecretKey: process.env.S3_SECRET_KEY ?? "minio-secret-key",
   s3Region: process.env.S3_REGION ?? "us-east-1",
+  useBlob: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
   maxUploadBytes: numberEnv("MAX_UPLOAD_BYTES", 8 * 1024 * 1024 * 1024),
   maxDurationSeconds: numberEnv("MAX_DURATION_SECONDS", 2.5 * 60 * 60),
   storageCapBytes: numberEnv("STORAGE_CAP_BYTES", 30 * 1024 * 1024 * 1024),

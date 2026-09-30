@@ -6,6 +6,7 @@ import { signGet } from "./s3";
 
 export type JobStatus =
   | "uploading"
+  | "calibrating"
   | "queued"
   | "analyzing"
   | "ready"
@@ -129,6 +130,13 @@ export async function insertUploadingJob(input: {
     }
     throw error;
   }
+}
+
+export async function attachBlob(id: string, url: string): Promise<void> {
+  await pool.query("UPDATE jobs SET source_key = $2, updated_at = now() WHERE id = $1 AND status = 'uploading'", [
+    id,
+    url,
+  ]);
 }
 
 export async function setUploadId(id: string, uploadId: string): Promise<void> {

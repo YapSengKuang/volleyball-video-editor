@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { upload } from "@vercel/blob/client";
 import { formatBytes, formatHours, formatRemaining } from "@/lib/time";
 
 type Limits = {
@@ -59,9 +60,29 @@ export function UploadForm() {
         size: file.size,
         contentType: file.type || "application/octet-stream",
       });
+      const id = created.id as string;
+      if (created.mode === "blob") {
+        const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
+        const blob = await upload(`sources/${id}.${ext}`, file, {
+          access: "private",
+          handleUploadUrl: "/api/blob",
+          clientPayload: JSON.stringify({ jobId: id }),
+          multipart: true,
+          onUploadProgress: ({ percentage }) => {
+            const ratio = percentage / 100;
+            setProgress(ratio);
+            const elapsed = (performance.now() - uploadStarted.current) / 1000;
+            if (ratio > 0.05 && elapsed > 2) {
+              setUploadEta((elapsed * (1 - ratio)) / ratio);
+            }
+          },
+        });
+        await postJson(`/api/jobs/${id}/complete`, { blobUrl: blob.url });
+        router.push(`/jobs/${id}`);
+        return;
+      }
       const partSize = created.partSize as number;
       const partCount = created.partCount as number;
-      const id = created.id as string;
       const etags: { partNumber: number; etag: string }[] = [];
       let uploaded = 0;
       const parts = Array.from({ length: partCount }, (_, index) => index + 1);

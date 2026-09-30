@@ -9,6 +9,7 @@ import {
   type CompletedPart,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { issueSignedToken, presignUrl } from "@vercel/blob";
 import { config } from "./config";
 
 function makeClient(endpoint: string): S3Client {
@@ -89,6 +90,22 @@ export async function signGet(
   downloadName?: string,
   contentType?: string,
 ): Promise<string> {
+  if (key.startsWith("https://") && key.includes(".blob.vercel-storage.com")) {
+    const pathname = new URL(key).pathname.slice(1);
+    const validUntil = Date.now() + expires * 1000;
+    const signed = await issueSignedToken({
+      pathname,
+      operations: ["get"],
+      validUntil,
+    });
+    const presigned = await presignUrl(signed, {
+      access: "private",
+      operation: "get",
+      pathname,
+      validUntil,
+    });
+    return presigned.presignedUrl;
+  }
   const filename = downloadName?.replace(/["\r\n]/g, "") ?? "";
   return getSignedUrl(
     presign,

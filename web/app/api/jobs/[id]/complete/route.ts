@@ -1,4 +1,4 @@
-import { markCalibrating, markFailed, requireJob } from "@/lib/jobs";
+import { attachBlob, markCalibrating, markFailed, requireJob } from "@/lib/jobs";
 import { completeUpload, deleteObject, objectSize } from "@/lib/s3";
 import { assertUuid, errorResponse, HttpError, json, readJson } from "@/lib/http";
 
@@ -10,12 +10,30 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
     const { id } = await context.params;
     assertUuid(id);
     const job = await requireJob(id);
+    if (job.status === "calibrating") return json({ id, status: "calibrating" });
     if (job.status !== "uploading" || !job.upload_id) {
       throw new HttpError("This upload is already finished.", 409);
     }
     const body = (await readJson(req, 256 * 1024)) as {
       parts?: { partNumber?: unknown; etag?: unknown }[];
+      blobUrl?: unknown;
     };
+    if (job.upload_id === "blob") {
+      const blobUrl = typeof body.blobUrl === "string" ? body.blobUrl : "";
+      let host = "";
+      try {
+        host = new URL(blobUrl).hostname;
+      } catch {
+        host = "";
+      }
+      if (!host.endsWith(".blob.vercel-storage.com")) {
+        throw new HttpError("The uploaded file is missing.", 400);
+      }
+      await attachBlob(id, blobUrl);
+      const queued = await markCalibrating(id);
+      if (!queued) throw new HttpError("This upload is already finished.", 409);
+      return json({ id, status: "calibrating" });
+    }
     if (!Array.isArray(body.parts) || body.parts.length === 0) {
       throw new HttpError("The upload is missing its parts.", 400);
     }

@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     }
 
     const id = randomUUID();
-    const sourceKey = `sources/${id}`;
+    const sourceKey = `sources/${id}.${ext}`;
     const contentType = contentTypeFor(ext);
     await insertUploadingJob({
       id,
@@ -52,6 +52,10 @@ export async function POST(req: Request) {
       sourceKey,
       clientIp: ip,
     });
+    if (config.useBlob) {
+      await setUploadId(id, "blob");
+      return json({ id, mode: "blob" });
+    }
     try {
       const uploadId = await createUpload(sourceKey, contentType);
       await setUploadId(id, uploadId);
