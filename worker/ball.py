@@ -24,6 +24,11 @@ MIN_RALLY_S = 1.5
 PRE_ROLL_S = 1.5
 POST_ROLL_S = 2.0
 MIN_SPEED = 0.22  # fraction of the frame width per second
+# predict() confidence is lower so the explicit gate below is what keeps a box.
+PREDICT_CONF = 0.15
+BALL_MIN_CONF = 0.25
+BALL_MIN_WIDTH_PX = 8.0
+BALL_MAX_WIDTH_FRAC = 0.18
 
 
 @dataclass
@@ -196,7 +201,7 @@ def scan_ball(path: str, corners: list | None, duration: float, on_progress=None
     stream = model.predict(
         source=path,
         classes=[ball_class],
-        conf=0.15,
+        conf=PREDICT_CONF,
         imgsz=BALL_IMGSZ,
         device=_device(),
         stream=True,
@@ -212,7 +217,7 @@ def scan_ball(path: str, corners: list | None, duration: float, on_progress=None
         conf = float(best.conf[0])
         x1, y1, x2, y2 = (float(value) for value in best.xyxy[0].tolist())
         box_w = x2 - x1
-        if conf < 0.25 or box_w < 8 or box_w > 0.18 * width:
+        if conf < BALL_MIN_CONF or box_w < BALL_MIN_WIDTH_PX or box_w > BALL_MAX_WIDTH_FRAC * width:
             continue
         cy = ((y1 + y2) / 2) / height
         if corners is None and cy > 0.72:

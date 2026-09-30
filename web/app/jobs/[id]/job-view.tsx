@@ -237,8 +237,7 @@ export function JobView({ id }: { id: string }) {
           {job.etaSeconds != null ? ` · ${formatRemaining(job.etaSeconds)}` : job.status === "analyzing" ? " · Estimating time…" : ""}
         </p>
         <p className="note">
-          The ball scan runs on this computer&apos;s processor, a few times a second. Giving Docker more CPU cores in
-          Docker Desktop settings makes it finish sooner. A graphics card does not speed up this install.
+          The cut listens for hits in the whistle band. That finishes much faster than scanning every frame for the ball.
         </p>
       </section>
     );
@@ -255,8 +254,8 @@ export function JobView({ id }: { id: string }) {
       <div className="panel">
         <h1>{job.filename}</h1>
         <p className="note">
-          Rallies follow the ball while it is moving inside your court. Serve setup and walking the ball back are left
-          out. Each clip has a little time before the first touch and after the last one.
+          Rallies open on a sharp hit or whistle and stay open for a few seconds. A steady crowd roar is left out.
+          Trim a clip if it runs long.
         </p>
         {job.warning && <p className="warning">{job.warning}</p>}
         {job.error && <p className="error">{job.error}</p>}

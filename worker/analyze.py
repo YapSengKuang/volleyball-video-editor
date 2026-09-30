@@ -520,6 +520,25 @@ def propose_for_file(
 
     try:
         report(0.02, "Checking duration", 0.0)
+        report(0.08, "Listening for hits", 0.2)
+        try:
+            from sound_cut import sound_rallies
+
+            sound = sound_rallies(path, duration)
+        except Exception:
+            import traceback
+
+            traceback.print_exc()
+            sound = []
+        if sound:
+            report(0.96, "Marking the rallies", 1.0)
+            return (
+                to_clips(sound, duration),
+                "Rallies open on a sharp hit or whistle, then stay open for a few seconds. "
+                "A steady crowd roar is ignored. Trim a clip if it runs into the next break. "
+                "A whistle on the next court can still open a clip.",
+                duration,
+            )
 
         def clock_label(seconds: float) -> str:
             whole = max(0, int(seconds))

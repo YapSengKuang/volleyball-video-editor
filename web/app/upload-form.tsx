@@ -107,12 +107,12 @@ export function UploadForm() {
     <section className="panel">
       <h1>Upload a game</h1>
       <p className="lede">
-        The editor makes a small preview, follows the ball with a lightweight detector, and cuts each rally from the
-        original. A ball that is only being held or walked back does not keep the point going.
+        The editor listens for a sharp hit or whistle and cuts each rally from the original. A steady crowd roar does
+        not keep the point going.
       </p>
       <p className="note">
-        Mark your court so a ball on the next court is ignored. A rally runs from the first moving ball until the ball
-        has been gone for about three seconds, with a short roll before the serve and after the point.
+        Each hit holds the clip open for a few seconds. Trim the start and end if a clip runs into the break. A whistle
+        on the next court can still be included.
       </p>
       <div className="limits" aria-label="Limits">
         <span>Up to {formatBytes(limits.maxUploadBytes)}</span>

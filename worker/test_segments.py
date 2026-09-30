@@ -139,7 +139,7 @@ class FixtureTests(unittest.TestCase):
             path = f"{tmp}/fixture.mov"
             make_fixture(path)
             segments, warning, duration = propose_for_file(path)
-        self.assertIn("whole frame", warning or "")
+        self.assertIn("whistle", warning or "")
         self.assertGreater(duration, 55)
         self.assertLess(duration, 65)
         for second, keep in ((1, False), (14, True), (24, False), (32, True), (43, False), (51, True)):
