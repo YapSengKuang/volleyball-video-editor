@@ -1,0 +1,81 @@
+{
+  "duration": 264.0,
+  "players_per_side": 6,
+  "hits": 140,
+  "rallies": [
+    {
+      "start": 47.1,
+      "end": 52.8
+    },
+    {
+      "start": 162.1,
+      "end": 169.6
+    },
+    {
+      "start": 208.1,
+      "end": 213.0
+    },
+    {
+      "start": 229.5,
+      "end": 234.4
+    },
+    {
+      "start": 248.9,
+      "end": 262.2
+    }
+  ],
+  "labels": [
+    {
+      "start": 17.0,
+      "end": 29.0
+    },
+    {
+      "start": 37.0,
+      "end": 54.0
+    },
+    {
+      "start": 66.0,
+      "end": 82.0
+    },
+    {
+      "start": 92.0,
+      "end": 95.0
+    },
+    {
+      "start": 106.0,
+      "end": 117.0
+    },
+    {
+      "start": 127.0,
+      "end": 136.0
+    },
+    {
+      "start": 153.0,
+      "end": 170.0
+    },
+    {
+      "start": 186.0,
+      "end": 196.0
+    },
+    {
+      "start": 207.0,
+      "end": 215.0
+    },
+    {
+      "start": 228.0,
+      "end": 244.0
+    }
+  ],
+  "score": {
+    "precision": 0.6341463414634146,
+    "recall": 0.20155038759689922,
+    "tp": 26,
+    "fp": 15,
+    "fn": 103,
+    "matches": 4,
+    "mean_start_error": 5.4499999999999975,
+    "mean_end_error": 3.3000000000000007,
+    "typical_boundary_error": 4.374999999999999,
+    "meets_exit_bar": false
+  }
+}

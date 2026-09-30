@@ -1,0 +1,141 @@
+{
+  "duration": 264.0,
+  "players_per_side": 6,
+  "resolution": "1920x1080",
+  "fps": 5,
+  "imgsz": 1280,
+  "hits": 474,
+  "moving_hits": 214,
+  "raw_rallies": [
+    {
+      "start": 21.0,
+      "end": 28.0
+    },
+    {
+      "start": 41.0,
+      "end": 43.0
+    },
+    {
+      "start": 48.4,
+      "end": 52.0
+    },
+    {
+      "start": 74.2,
+      "end": 78.8
+    },
+    {
+      "start": 82.8,
+      "end": 94.4
+    },
+    {
+      "start": 107.8,
+      "end": 116.2
+    },
+    {
+      "start": 122.4,
+      "end": 135.2
+    },
+    {
+      "start": 159.2,
+      "end": 168.8
+    },
+    {
+      "start": 181.4,
+      "end": 184.6
+    },
+    {
+      "start": 189.8,
+      "end": 196.0
+    },
+    {
+      "start": 222.2,
+      "end": 232.2
+    },
+    {
+      "start": 235.8,
+      "end": 239.6
+    },
+    {
+      "start": 250.0,
+      "end": 262.8
+    }
+  ],
+  "padded_rallies": [
+    {
+      "start": 19.5,
+      "end": 30.0
+    },
+    {
+      "start": 39.5,
+      "end": 45.0
+    },
+    {
+      "start": 46.9,
+      "end": 54.0
+    },
+    {
+      "start": 72.7,
+      "end": 80.8
+    },
+    {
+      "start": 81.3,
+      "end": 96.4
+    },
+    {
+      "start": 106.3,
+      "end": 118.2
+    },
+    {
+      "start": 120.9,
+      "end": 137.2
+    },
+    {
+      "start": 157.7,
+      "end": 170.8
+    },
+    {
+      "start": 179.9,
+      "end": 186.6
+    },
+    {
+      "start": 188.3,
+      "end": 198.0
+    },
+    {
+      "start": 220.7,
+      "end": 234.2
+    },
+    {
+      "start": 234.3,
+      "end": 241.6
+    },
+    {
+      "start": 248.5,
+      "end": 264.0
+    }
+  ],
+  "raw_score": {
+    "precision": 0.6605504587155964,
+    "recall": 0.5581395348837209,
+    "tp": 72,
+    "fp": 37,
+    "fn": 57,
+    "matches": 9,
+    "mean_start_error": 6.333333333333334,
+    "mean_end_error": 1.5555555555555556,
+    "typical_boundary_error": 3.9444444444444446,
+    "meets_exit_bar": false
+  },
+  "padded_score": {
+    "precision": 0.6538461538461539,
+    "recall": 0.7906976744186046,
+    "tp": 102,
+    "fp": 54,
+    "fn": 27,
+    "matches": 9,
+    "mean_start_error": 5.500000000000001,
+    "mean_end_error": 1.2444444444444462,
+    "typical_boundary_error": 3.3722222222222236,
+    "meets_exit_bar": false
+  }
+}

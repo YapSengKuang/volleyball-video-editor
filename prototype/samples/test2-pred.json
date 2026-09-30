@@ -1,0 +1,17 @@
+{
+  "duration": 436.0,
+  "players_per_side": 6,
+  "rallies": [],
+  "score": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 153,
+    "matches": 0,
+    "mean_start_error": null,
+    "mean_end_error": null,
+    "typical_boundary_error": null,
+    "meets_exit_bar": false
+  }
+}

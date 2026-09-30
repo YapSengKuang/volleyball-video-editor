@@ -1,0 +1,101 @@
+{
+  "duration": 436.0,
+  "players_per_side": 6,
+  "resolution": "1920x1080",
+  "fps": 5,
+  "imgsz": 1280,
+  "hits": 317,
+  "moving_hits": 102,
+  "raw_rallies": [
+    {
+      "start": 5.0,
+      "end": 7.6
+    },
+    {
+      "start": 25.4,
+      "end": 32.0
+    },
+    {
+      "start": 60.2,
+      "end": 64.0
+    },
+    {
+      "start": 70.8,
+      "end": 78.2
+    },
+    {
+      "start": 97.4,
+      "end": 99.6
+    },
+    {
+      "start": 242.6,
+      "end": 245.2
+    },
+    {
+      "start": 320.6,
+      "end": 323.4
+    },
+    {
+      "start": 340.0,
+      "end": 343.4
+    }
+  ],
+  "padded_rallies": [
+    {
+      "start": 3.5,
+      "end": 9.6
+    },
+    {
+      "start": 23.9,
+      "end": 34.0
+    },
+    {
+      "start": 58.7,
+      "end": 66.0
+    },
+    {
+      "start": 69.3,
+      "end": 80.2
+    },
+    {
+      "start": 95.9,
+      "end": 101.6
+    },
+    {
+      "start": 241.1,
+      "end": 247.2
+    },
+    {
+      "start": 319.1,
+      "end": 325.4
+    },
+    {
+      "start": 338.5,
+      "end": 345.4
+    }
+  ],
+  "raw_score": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "tp": 0,
+    "fp": 40,
+    "fn": 153,
+    "matches": 0,
+    "mean_start_error": null,
+    "mean_end_error": null,
+    "typical_boundary_error": null,
+    "meets_exit_bar": false
+  },
+  "padded_score": {
+    "precision": 0.028985507246376812,
+    "recall": 0.013071895424836602,
+    "tp": 2,
+    "fp": 67,
+    "fn": 151,
+    "matches": 2,
+    "mean_start_error": 5.8999999999999915,
+    "mean_end_error": 20.700000000000017,
+    "typical_boundary_error": 13.300000000000004,
+    "meets_exit_bar": false
+  }
+}

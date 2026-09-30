@@ -1,0 +1,56 @@
+{
+  "players_per_side": 6,
+  "file_minutes": 10.87,
+  "analyzed_minutes": 7.27,
+  "kept_minutes": 1.51,
+  "minutes_saved": 5.76,
+  "labeled_minutes_saved": 4.88,
+  "court": {
+    "x0": 0.2173081865629119,
+    "y0": 0.2211346340179443,
+    "x1": 0.9307842341793443,
+    "y1": 1.0
+  },
+  "rallies": [
+    {
+      "start": 13.0,
+      "end": 26.2
+    },
+    {
+      "start": 84.0,
+      "end": 89.6
+    },
+    {
+      "start": 198.0,
+      "end": 216.0
+    },
+    {
+      "start": 225.5,
+      "end": 245.9
+    },
+    {
+      "start": 290.0,
+      "end": 297.00000000000006
+    },
+    {
+      "start": 302.0,
+      "end": 321.8
+    },
+    {
+      "start": 342.0,
+      "end": 348.6
+    }
+  ],
+  "score": {
+    "precision": 0.37894736842105264,
+    "recall": 0.23529411764705882,
+    "tp": 36,
+    "fp": 59,
+    "fn": 117,
+    "matches": 4,
+    "mean_start_error": 2.875,
+    "mean_end_error": 9.024999999999999,
+    "typical_boundary_error": 5.949999999999999,
+    "meets_exit_bar": false
+  }
+}
