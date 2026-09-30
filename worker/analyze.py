@@ -520,6 +520,29 @@ def propose_for_file(
 
     try:
         report(0.02, "Checking duration", 0.0)
+        if corners:
+            report(0.08, "Measuring movement inside your court", 0.2)
+            try:
+                from learned_cut import learned_rallies, load_model
+
+                if load_model() is not None:
+                    learned = learned_rallies(path, corners, duration)
+                else:
+                    learned = []
+            except Exception:
+                import traceback
+
+                traceback.print_exc()
+                learned = []
+            if learned:
+                report(0.96, "Marking the rallies", 1.0)
+                return (
+                    to_clips(learned, duration),
+                    "Rallies come from movement inside the court you marked, with sound as a hint. "
+                    "Games outside that box are ignored. Clips lean toward keeping a little extra. "
+                    "Trim one if it still runs long.",
+                    duration,
+                )
         report(0.08, "Listening for hits", 0.2)
         try:
             from sound_cut import sound_rallies

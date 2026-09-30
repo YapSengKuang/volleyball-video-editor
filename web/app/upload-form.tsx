@@ -107,12 +107,11 @@ export function UploadForm() {
     <section className="panel">
       <h1>Upload a game</h1>
       <p className="lede">
-        The editor listens for a sharp hit or whistle and cuts each rally from the original. A steady crowd roar does
-        not keep the point going.
+        Click the four corners of your court. Movement outside that box is ignored, so a game in the background is
+        left out. The cut is made from movement inside the court, with sound only as a hint.
       </p>
       <p className="note">
-        Each hit holds the clip open for a few seconds. Trim the start and end if a clip runs into the break. A whistle
-        on the next court can still be included.
+        Clips keep a couple of seconds before the serve and after the point. Trim one if it still runs long.
       </p>
       <div className="limits" aria-label="Limits">
         <span>Up to {formatBytes(limits.maxUploadBytes)}</span>

@@ -131,6 +131,19 @@ class BallStateTests(unittest.TestCase):
         self.assertEqual(rallies_from_hits(outside, duration=8.0, corners=corners), [])
 
 
+class LearnedPostTests(unittest.TestCase):
+    def test_hysteresis_pads_and_drops_a_short_blip(self) -> None:
+        from learned_cut import rallies_from_probs
+
+        probs = np.zeros(30)
+        probs[2:4] = 0.9
+        probs[10:18] = 0.8
+        clips = rallies_from_probs(probs, duration=30)
+        self.assertEqual(len(clips), 1)
+        self.assertLess(clips[0][0], 10)
+        self.assertGreater(clips[0][1], 18)
+
+
 class FixtureTests(unittest.TestCase):
     def test_fixture_file(self) -> None:
         from make_fixture import make_fixture

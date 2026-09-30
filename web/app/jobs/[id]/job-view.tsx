@@ -237,7 +237,7 @@ export function JobView({ id }: { id: string }) {
           {job.etaSeconds != null ? ` · ${formatRemaining(job.etaSeconds)}` : job.status === "analyzing" ? " · Estimating time…" : ""}
         </p>
         <p className="note">
-          The cut listens for hits in the whistle band. That finishes much faster than scanning every frame for the ball.
+          Movement is measured inside the court you marked. That ignores the games in the background.
         </p>
       </section>
     );
@@ -254,8 +254,8 @@ export function JobView({ id }: { id: string }) {
       <div className="panel">
         <h1>{job.filename}</h1>
         <p className="note">
-          Rallies open on a sharp hit or whistle and stay open for a few seconds. A steady crowd roar is left out.
-          Trim a clip if it runs long.
+          Rallies come from movement inside the court you marked. Sound is only a hint, so a roar from the next
+          court does not decide the cut. Trim a clip if it still runs long.
         </p>
         {job.warning && <p className="warning">{job.warning}</p>}
         {job.error && <p className="error">{job.error}</p>}
