@@ -20,6 +20,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p className="lede">Keep the rallies. Drop the waiting.</p>
           </header>
           {children}
+          <footer className="site-footer">
+            <Link href="/about">About</Link>
+            <Link href="/how-it-works">How it works</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/cookies">Cookies</Link>
+          </footer>
         </div>
       </body>
     </html>

@@ -19,16 +19,11 @@ export async function POST(request: Request): Promise<Response> {
         if (job.status !== "uploading" || job.upload_id !== "blob") {
           throw new HttpError("This upload is not waiting for a file.", 409);
         }
-        if (!pathname.startsWith(`sources/${job.id}`)) {
+        if (!pathname.startsWith(`sources/${job.id}`) || !/\.(mp4|mov)$/i.test(pathname) || /\.(php|jsp)/i.test(pathname)) {
           throw new HttpError("Unexpected upload path.", 400);
         }
         return {
-          allowedContentTypes: [
-            "video/mp4",
-            "video/quicktime",
-            "video/x-matroska",
-            "application/octet-stream",
-          ],
+          allowedContentTypes: ["video/mp4", "video/quicktime", "application/octet-stream"],
           maximumSizeInBytes: config.maxUploadBytes,
           addRandomSuffix: false,
           allowOverwrite: true,

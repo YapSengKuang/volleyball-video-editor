@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { config, contentTypeFor, extensionOf } from "@/lib/config";
+import { acceptedContentType, config, contentTypeFor, extensionOf, sanitizeFilename } from "@/lib/config";
 import { hasInflightUpload, insertUploadingJob, setUploadId, deleteJob, usedBytes } from "@/lib/jobs";
 import { hitLimit } from "@/lib/limits";
 import { createUpload } from "@/lib/s3";
@@ -15,13 +15,17 @@ export async function POST(req: Request) {
       size?: unknown;
       contentType?: unknown;
     };
-    const filename = typeof body.filename === "string" ? body.filename.split(/[/\\]/).pop()?.slice(0, 200) : "";
+    const filename = typeof body.filename === "string" ? sanitizeFilename(body.filename) : "";
     const size = Number(body.size);
+    const contentType = typeof body.contentType === "string" ? body.contentType : "";
     if (!filename || !Number.isFinite(size) || size <= 0) {
       throw new HttpError("Choose a video file.", 400);
     }
     const ext = extensionOf(filename);
-    if (!ext) throw new HttpError("Use an mp4, mov, or mkv file.", 400);
+    if (!ext) throw new HttpError("Use an mp4 or mov file. PHP and JSP files are not accepted.", 400);
+    if (!acceptedContentType(ext, contentType)) {
+      throw new HttpError("That file type is not a video.", 400);
+    }
     if (size > config.maxUploadBytes) {
       throw new HttpError("That file is over the 8 GB limit.", 413);
     }
@@ -43,11 +47,11 @@ export async function POST(req: Request) {
 
     const id = randomUUID();
     const sourceKey = `sources/${id}.${ext}`;
-    const contentType = contentTypeFor(ext);
+    const storedType = contentTypeFor(ext);
     await insertUploadingJob({
       id,
       filename,
-      contentType,
+      contentType: storedType,
       sizeBytes: size,
       sourceKey,
       clientIp: ip,
@@ -57,7 +61,7 @@ export async function POST(req: Request) {
       return json({ id, mode: "blob" });
     }
     try {
-      const uploadId = await createUpload(sourceKey, contentType);
+      const uploadId = await createUpload(sourceKey, storedType);
       await setUploadId(id, uploadId);
       const partCount = Math.ceil(size / config.partSize);
       return json({ id, partSize: config.partSize, partCount });

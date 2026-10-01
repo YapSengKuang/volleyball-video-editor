@@ -49,6 +49,15 @@ export function UploadForm() {
 
   async function onFile(file: File | null) {
     if (!file || progress !== null) return;
+    const lower = file.name.toLowerCase();
+    if (!/\.(mp4|mov)$/.test(lower) || /\.(php|jsp)/.test(lower)) {
+      setError("Use an mp4 or mov file. PHP and JSP files are not accepted.");
+      return;
+    }
+    if (file.size > limits.maxUploadBytes) {
+      setError("That file is over the 8 GB limit.");
+      return;
+    }
     setError(null);
     setMessage(file.size > 1024 ** 3 ? "Large game. Uploading and finding rallies will take a while." : null);
     setProgress(0);
@@ -143,7 +152,7 @@ export function UploadForm() {
       <label className="drop">
         <input
           type="file"
-          accept=".mp4,.mov,.mkv,video/mp4,video/quicktime,video/x-matroska"
+          accept=".mp4,.mov,video/mp4,video/quicktime"
           disabled={progress !== null}
           onChange={(event) => {
             const file = event.target.files?.[0] ?? null;
@@ -151,7 +160,7 @@ export function UploadForm() {
             void onFile(file);
           }}
         />
-        <strong>{progress === null ? "Choose an mp4, mov, or mkv" : "Uploading…"}</strong>
+        <strong>{progress === null ? "Choose an mp4 or mov" : "Uploading…"}</strong>
         <p>One game can be uploading at a time. You get one file per rally, not one long cut.</p>
       </label>
       {progress !== null && (

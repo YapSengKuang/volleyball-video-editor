@@ -1,9 +1,13 @@
+import "server-only";
+
 function numberEnv(name: string, fallback: number): number {
   const raw = process.env[name];
   if (!raw) return fallback;
   const value = Number(raw);
   return Number.isFinite(value) ? value : fallback;
 }
+
+const EIGHT_GB = 8 * 1024 * 1024 * 1024;
 
 export const config = {
   databaseUrl:
@@ -16,7 +20,7 @@ export const config = {
   s3SecretKey: process.env.S3_SECRET_KEY ?? "minio-secret-key",
   s3Region: process.env.S3_REGION ?? "us-east-1",
   useBlob: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-  maxUploadBytes: numberEnv("MAX_UPLOAD_BYTES", 8 * 1024 * 1024 * 1024),
+  maxUploadBytes: Math.min(numberEnv("MAX_UPLOAD_BYTES", EIGHT_GB), EIGHT_GB),
   maxDurationSeconds: numberEnv("MAX_DURATION_SECONDS", 2.5 * 60 * 60),
   storageCapBytes: numberEnv("STORAGE_CAP_BYTES", 30 * 1024 * 1024 * 1024),
   jobsPerIpPerHour: numberEnv("JOBS_PER_IP_PER_HOUR", 3),
@@ -32,10 +36,18 @@ export const config = {
   maxSegments: 2000,
 };
 
-export const allowedExtensions = ["mp4", "mov", "mkv"] as const;
+export const allowedExtensions = ["mp4", "mov"] as const;
+
+const blockedScript = /\.(php\d?|phtml|phar|jspx?|jsw|jsv)(\.|$)/i;
+
+export function sanitizeFilename(filename: string): string {
+  const base = filename.split(/[/\\]/).pop() ?? "";
+  return base.replace(/[<>"'&]/g, "").replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 200);
+}
 
 export function extensionOf(filename: string): string | null {
-  const base = filename.split(/[/\\]/).pop() ?? "";
+  const base = sanitizeFilename(filename);
+  if (!base || blockedScript.test(base)) return null;
   const match = /\.([a-z0-9]+)$/i.exec(base);
   if (!match) return null;
   const ext = match[1].toLowerCase();
@@ -44,6 +56,12 @@ export function extensionOf(filename: string): string | null {
 
 export function contentTypeFor(ext: string): string {
   if (ext === "mov") return "video/quicktime";
-  if (ext === "mkv") return "video/x-matroska";
   return "video/mp4";
+}
+
+export function acceptedContentType(ext: string, contentType: string): boolean {
+  const normalized = contentType.toLowerCase().split(";")[0].trim();
+  if (!normalized || normalized === "application/octet-stream") return true;
+  if (ext === "mov") return normalized === "video/quicktime" || normalized === "video/mp4";
+  return normalized === "video/mp4";
 }
