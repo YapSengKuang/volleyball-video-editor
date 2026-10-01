@@ -14,7 +14,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="shell">
           <header className="top">
             <Link className="brand" href="/">
-              Rally <span>cut</span>
+              <span className="mark" aria-hidden="true" />
+              Rally cut
             </Link>
             <p className="lede">Keep the rallies. Drop the waiting.</p>
           </header>

@@ -250,8 +250,8 @@ export function JobView({ id }: { id: string }) {
   const exporting = job.status === "export_queued" || job.status === "exporting";
 
   return (
-    <section className="stage">
-      <div className="panel">
+    <section className="workspace">
+      <div className="preview-pane panel">
         <h1>{job.filename}</h1>
         <p className="note">
           Rallies come from movement inside the court you marked. Sound is only a hint, so a roar from the next
@@ -286,6 +286,37 @@ export function JobView({ id }: { id: string }) {
             Mark court again
           </button>
         </div>
+        <div className="row" style={{ marginTop: 14 }}>
+          <button type="button" onClick={() => void exportCut()} disabled={locked || included.length === 0 || saveState === "error"}>
+            {exporting ? "Exporting…" : "Export full-resolution clips"}
+          </button>
+          {job.status === "done" && (
+            <>
+              <button type="button" onClick={() => void download("clips")}>
+                Download clips
+              </button>
+              <button type="button" onClick={() => void download("game")} disabled={!job.hasFullGame}>
+                Download full game
+              </button>
+            </>
+          )}
+          <span className="note">{saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : ""}</span>
+        </div>
+        {exporting && (
+          <>
+            <div className="bar" role="progressbar" aria-valuenow={Math.round(job.progress * 100)} aria-valuemin={0} aria-valuemax={100}>
+              <span style={{ width: `${Math.round(job.progress * 100)}%` }} />
+            </div>
+            <p className="note">
+              {job.phase}
+              {job.etaSeconds != null ? ` · ${formatRemaining(job.etaSeconds)}` : " · Estimating time…"}
+            </p>
+          </>
+        )}
+        {job.expiresAt && <p className="note">The game and the clips are deleted 24 hours after processing finishes.</p>}
+      </div>
+      <aside className="clips-pane panel">
+        <h2>Clips</h2>
         <div className="clips">
           {segments.length === 0 && <p className="note">No rallies yet. Play the game and add a clip at the playhead.</p>}
           {segments.map((clip, index) => (
@@ -352,35 +383,7 @@ export function JobView({ id }: { id: string }) {
             </article>
           ))}
         </div>
-        <div className="row" style={{ marginTop: 14 }}>
-          <button type="button" onClick={() => void exportCut()} disabled={locked || included.length === 0 || saveState === "error"}>
-            {exporting ? "Exporting…" : "Export full-resolution clips"}
-          </button>
-          {job.status === "done" && (
-            <>
-              <button type="button" onClick={() => void download("clips")}>
-                Download clips
-              </button>
-              <button type="button" onClick={() => void download("game")} disabled={!job.hasFullGame}>
-                Download full game
-              </button>
-            </>
-          )}
-          <span className="note">{saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : ""}</span>
-        </div>
-        {exporting && (
-          <>
-            <div className="bar" role="progressbar" aria-valuenow={Math.round(job.progress * 100)} aria-valuemin={0} aria-valuemax={100}>
-              <span style={{ width: `${Math.round(job.progress * 100)}%` }} />
-            </div>
-            <p className="note">
-              {job.phase}
-              {job.etaSeconds != null ? ` · ${formatRemaining(job.etaSeconds)}` : " · Estimating time…"}
-            </p>
-          </>
-        )}
-        {job.expiresAt && <p className="note">The game and the clips are deleted 24 hours after processing finishes.</p>}
-      </div>
+      </aside>
     </section>
   );
 }
