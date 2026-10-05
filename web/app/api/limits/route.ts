@@ -9,6 +9,7 @@ export function GET() {
     maxDurationSeconds: config.maxDurationSeconds,
     jobsPerIpPerHour: config.jobsPerIpPerHour,
     retentionHours: config.retentionHours,
+    storageCapBytes: config.storageCapBytes,
     extensions: ["mp4", "mov"],
   });
 }

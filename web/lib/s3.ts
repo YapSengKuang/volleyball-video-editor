@@ -9,7 +9,7 @@ import {
   type CompletedPart,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { issueSignedToken, presignUrl } from "@vercel/blob";
+import { del, issueSignedToken, presignUrl } from "@vercel/blob";
 import { config } from "./config";
 
 function makeClient(endpoint: string): S3Client {
@@ -75,6 +75,16 @@ export async function completeUpload(
 
 export async function deleteObject(key: string): Promise<void> {
   await internal.send(new DeleteObjectCommand({ Bucket: config.s3Bucket, Key: key }));
+}
+
+export async function deleteStored(key: string | null): Promise<void> {
+  if (!key) return;
+  if (key.includes(".blob.vercel-storage.com")) {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+    await del(key).catch(() => undefined);
+    return;
+  }
+  await deleteObject(key).catch(() => undefined);
 }
 
 export async function objectSize(key: string): Promise<number> {

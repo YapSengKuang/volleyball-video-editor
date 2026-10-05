@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { acceptedContentType, config, contentTypeFor, extensionOf, sanitizeFilename } from "@/lib/config";
-import { hasInflightUpload, insertUploadingJob, setUploadId, deleteJob, usedBytes } from "@/lib/jobs";
+import { freeForUpload, hasInflightUpload, insertUploadingJob, setUploadId, deleteJob, usedBytes } from "@/lib/jobs";
 import { hitLimit } from "@/lib/limits";
 import { createUpload } from "@/lib/s3";
 import { clientIp, errorResponse, HttpError, json, readJson } from "@/lib/http";
@@ -36,10 +36,11 @@ export async function POST(req: Request) {
     if (await hitLimit(`ip:${ip}`, "create_job", 60 * 60, config.jobsPerIpPerHour)) {
       throw new HttpError("Too many new games from this network. Try again in about an hour.", 429, 3600);
     }
+    await freeForUpload(size);
     const used = await usedBytes();
     if (used + size > config.storageCapBytes) {
       throw new HttpError(
-        "Storage is full. Wait for older games to expire, 24 hours after they finish.",
+        "Stored video is at the 10 GB limit, and a game still being cut cannot be removed. Download what you need, then try again after it finishes.",
         429,
         3600,
       );

@@ -10,6 +10,7 @@ type Limits = {
   maxDurationSeconds: number;
   jobsPerIpPerHour: number;
   retentionHours: number;
+  storageCapBytes: number;
 };
 
 const fallbackLimits: Limits = {
@@ -17,6 +18,7 @@ const fallbackLimits: Limits = {
   maxDurationSeconds: 2.5 * 60 * 60,
   jobsPerIpPerHour: 3,
   retentionHours: 24,
+  storageCapBytes: 10 * 1024 * 1024 * 1024,
 };
 
 async function mapPool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>) {
@@ -147,6 +149,7 @@ export function UploadForm() {
         <span>Up to {formatBytes(limits.maxUploadBytes)}</span>
         <span>Up to {formatHours(limits.maxDurationSeconds)}</span>
         <span>{limits.jobsPerIpPerHour} new games per hour from this network</span>
+        <span>{formatBytes(limits.storageCapBytes)} stored</span>
         <span>Deleted {limits.retentionHours} hours after processing finishes</span>
       </div>
       <label className="drop">

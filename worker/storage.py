@@ -17,8 +17,12 @@ from config import (
     S3_ENDPOINT,
     S3_REGION,
     S3_SECRET_KEY,
+    USE_R2,
     WEB_ORIGINS,
 )
+
+os.environ.setdefault("AWS_REQUEST_CHECKSUM_CALCULATION", "when_required")
+os.environ.setdefault("AWS_RESPONSE_CHECKSUM_VALIDATION", "when_required")
 
 s3 = boto3.client(
     "s3",
@@ -31,6 +35,8 @@ s3 = boto3.client(
 
 
 def _blob_token() -> str:
+    if USE_R2:
+        return ""
     return os.environ.get("BLOB_READ_WRITE_TOKEN", "").strip()
 
 
@@ -50,7 +56,16 @@ def ensure_bucket() -> None:
         CORSConfiguration={
             "CORSRules": [
                 {
-                    "AllowedOrigins": WEB_ORIGINS,
+                    "AllowedOrigins": list(
+                        dict.fromkeys(
+                            [
+                                *WEB_ORIGINS,
+                                "https://volleyball-rally-editor.vercel.app",
+                                "http://localhost:3010",
+                                "http://127.0.0.1:3010",
+                            ]
+                        )
+                    ),
                     "AllowedMethods": ["GET", "PUT", "HEAD"],
                     "AllowedHeaders": ["*"],
                     "ExposeHeaders": ["ETag", "Content-Length", "Content-Range", "Accept-Ranges"],
