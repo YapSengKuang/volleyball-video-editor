@@ -8,21 +8,30 @@ function numberEnv(name: string, fallback: number): number {
 }
 
 const EIGHT_GB = 8 * 1024 * 1024 * 1024;
+const TEN_GB = 10 * 1024 * 1024 * 1024;
+
+function r2Endpoint(): string {
+  const account = (process.env.R2_ACCOUNT_ID ?? "").trim();
+  return account ? `https://${account}.r2.cloudflarestorage.com` : "";
+}
+
+const r2 = r2Endpoint();
+const usingR2 = Boolean(r2) || (process.env.S3_ENDPOINT ?? "").includes("r2.cloudflarestorage.com");
 
 export const config = {
   databaseUrl:
     process.env.DATABASE_URL ??
     "postgres://volleyball:volleyball@localhost:5432/volleyball",
-  s3Endpoint: process.env.S3_ENDPOINT ?? "http://localhost:9000",
-  s3PublicEndpoint: process.env.S3_PUBLIC_ENDPOINT ?? "http://localhost:9000",
-  s3Bucket: process.env.S3_BUCKET ?? "videos",
-  s3AccessKey: process.env.S3_ACCESS_KEY ?? "minio",
-  s3SecretKey: process.env.S3_SECRET_KEY ?? "minio-secret-key",
-  s3Region: process.env.S3_REGION ?? "us-east-1",
-  useBlob: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+  s3Endpoint: r2 || process.env.S3_ENDPOINT || "http://localhost:9000",
+  s3PublicEndpoint: r2 || process.env.S3_PUBLIC_ENDPOINT || process.env.S3_ENDPOINT || "http://localhost:9000",
+  s3Bucket: process.env.R2_BUCKET || process.env.S3_BUCKET || "videos",
+  s3AccessKey: process.env.R2_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY || "minio",
+  s3SecretKey: process.env.R2_SECRET_ACCESS_KEY || process.env.S3_SECRET_KEY || "minio-secret-key",
+  s3Region: usingR2 ? process.env.S3_REGION || "auto" : process.env.S3_REGION || "us-east-1",
+  useBlob: Boolean(process.env.BLOB_READ_WRITE_TOKEN) && !usingR2,
   maxUploadBytes: Math.min(numberEnv("MAX_UPLOAD_BYTES", EIGHT_GB), EIGHT_GB),
   maxDurationSeconds: numberEnv("MAX_DURATION_SECONDS", 2.5 * 60 * 60),
-  storageCapBytes: numberEnv("STORAGE_CAP_BYTES", 30 * 1024 * 1024 * 1024),
+  storageCapBytes: Math.min(numberEnv("STORAGE_CAP_BYTES", TEN_GB), TEN_GB),
   jobsPerIpPerHour: numberEnv("JOBS_PER_IP_PER_HOUR", 3),
   presignsPerIpPer10Min: numberEnv("PRESIGNS_PER_IP_PER_10_MIN", 30),
   segmentWritesPerMinute: numberEnv("SEGMENT_WRITES_PER_MINUTE", 60),

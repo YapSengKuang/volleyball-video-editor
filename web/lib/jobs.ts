@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { config } from "./config";
 import { pool } from "./db";
 import { HttpError } from "./http";
-import { signGet } from "./s3";
+import { deleteStored, signGet } from "./s3";
 
 export type JobStatus =
   | "uploading"
@@ -91,6 +91,28 @@ export async function getSegments(jobId: string): Promise<SegmentRow[]> {
     [jobId],
   );
   return result.rows.map(mapSegment);
+}
+
+export async function freeForUpload(incomingBytes: number): Promise<void> {
+  if ((await usedBytes()) + incomingBytes <= config.storageCapBytes) return;
+  const finished = await pool.query<{
+    id: string;
+    source_key: string;
+    output_key: string | null;
+    merged_key: string | null;
+  }>(
+    `SELECT id, source_key, output_key, merged_key
+     FROM jobs
+     WHERE status IN ('ready', 'done', 'failed', 'calibrating')
+     ORDER BY created_at ASC`,
+  );
+  for (const row of finished.rows) {
+    if ((await usedBytes()) + incomingBytes <= config.storageCapBytes) return;
+    await deleteStored(row.source_key);
+    await deleteStored(row.output_key);
+    await deleteStored(row.merged_key);
+    await deleteJob(row.id);
+  }
 }
 
 export async function usedBytes(): Promise<number> {
