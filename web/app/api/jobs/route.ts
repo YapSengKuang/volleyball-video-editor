@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { acceptedContentType, config, contentTypeFor, extensionOf, sanitizeFilename } from "@/lib/config";
-import { freeForUpload, hasInflightUpload, insertUploadingJob, setUploadId, deleteJob, usedBytes } from "@/lib/jobs";
+import { abandonStaleUploads, freeForUpload, hasInflightUpload, insertUploadingJob, setUploadId, deleteJob, usedBytes } from "@/lib/jobs";
 import { hitLimit } from "@/lib/limits";
 import { createUpload } from "@/lib/s3";
 import { clientIp, errorResponse, HttpError, json, readJson } from "@/lib/http";
@@ -30,6 +30,7 @@ export async function POST(req: Request) {
       throw new HttpError("That file is over the 8 GB limit.", 413);
     }
     const ip = clientIp(req);
+    await abandonStaleUploads();
     if (await hasInflightUpload(ip)) {
       throw new HttpError("Finish the upload already in progress before starting another.", 429, 60);
     }
