@@ -123,6 +123,17 @@ export async function usedBytes(): Promise<number> {
   return Number(result.rows[0]?.used ?? 0);
 }
 
+export async function abandonStaleUploads(): Promise<void> {
+  const stale = await pool.query<{ id: string; source_key: string }>(
+    `SELECT id, source_key FROM jobs
+     WHERE status = 'uploading' AND created_at < now() - interval '2 hours'`,
+  );
+  for (const row of stale.rows) {
+    await deleteStored(row.source_key);
+    await deleteJob(row.id);
+  }
+}
+
 export async function hasInflightUpload(ip: string): Promise<boolean> {
   const result = await pool.query(
     "SELECT 1 FROM jobs WHERE client_ip = $1 AND status = 'uploading' LIMIT 1",
