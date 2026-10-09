@@ -25,7 +25,9 @@ export function errorResponse(error: unknown): Response {
     );
   }
   console.error(error);
-  return json({ error: "Something went wrong." }, 500);
+  const raw = error instanceof Error ? `${error.name}: ${error.message}` : "Unknown error";
+  const cleaned = raw.replace(/postgres(?:ql)?:\/\/\S+/gi, "postgres://…").replace(/\s+/g, " ").slice(0, 240);
+  return json({ error: cleaned }, 500);
 }
 
 export function clientIp(req: Request): string {

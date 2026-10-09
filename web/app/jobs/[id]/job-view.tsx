@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { requestJson } from "@/lib/request";
 import { formatClock, formatRemaining } from "@/lib/time";
 import { CourtPicker } from "./court-picker";
 
@@ -55,9 +56,7 @@ export function JobView({ id }: { id: string }) {
   }, []);
 
   const refresh = useCallback(async () => {
-    const res = await fetch(`/api/jobs/${id}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Could not load this game.");
+    const data = await requestJson<{ job: Job; segments: Segment[] }>(`/api/jobs/${id}`);
     applyPayload(data);
   }, [applyPayload, id]);
 
@@ -103,12 +102,11 @@ export function JobView({ id }: { id: string }) {
     if (!playbackUrl) return;
     const timer = window.setTimeout(() => {
       pendingSeek.current = videoRef.current?.currentTime ?? 0;
-      void fetch(`/api/jobs/${id}/playback`)
-        .then((res) => res.json())
-        .then((data: { url?: string }) => {
+      void requestJson<{ url?: string }>(`/api/jobs/${id}/playback`)
+        .then((data) => {
           if (data.url) setPlaybackUrl(data.url);
         })
-        .catch(() => undefined);
+        .catch((error: Error) => setActionError(error.message));
     }, 10 * 60 * 1000);
     return () => window.clearTimeout(timer);
   }, [id, playbackUrl]);
@@ -125,20 +123,22 @@ export function JobView({ id }: { id: string }) {
     setSaveState("saving");
     setActionError(null);
     setSegments(next);
-    const res = await fetch(`/api/jobs/${id}/segments`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        segments: next.map((segment) => ({ start: segment.start, end: segment.end, keep: segment.keep })),
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (token !== saveToken.current) return;
-    if (!res.ok) {
+    let data: { segments: Segment[] };
+    try {
+      data = await requestJson<{ segments: Segment[] }>(`/api/jobs/${id}/segments`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          segments: next.map((segment) => ({ start: segment.start, end: segment.end, keep: segment.keep })),
+        }),
+      });
+    } catch (error) {
+      if (token !== saveToken.current) return;
       setSaveState("error");
-      setActionError(data.error || "Could not save the clips.");
+      setActionError(error instanceof Error ? error.message : "Could not save the clips.");
       return;
     }
+    if (token !== saveToken.current) return;
     dirtyRef.current = false;
     setSegments(data.segments);
     setSaveState("saved");
@@ -169,20 +169,21 @@ export function JobView({ id }: { id: string }) {
 
   async function exportCut() {
     setActionError(null);
-    const res = await fetch(`/api/jobs/${id}/export`, { method: "POST" });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setActionError(data.error || "Export did not start.");
+    try {
+      await requestJson(`/api/jobs/${id}/export`, { method: "POST" });
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Export did not start.");
       return;
     }
     await refresh();
   }
 
   async function download(format: "clips" | "game") {
-    const res = await fetch(`/api/jobs/${id}/download?format=${format}`);
-    const data = await res.json();
-    if (!res.ok) {
-      setActionError(data.error || "Download is not ready.");
+    let data: { url: string };
+    try {
+      data = await requestJson<{ url: string }>(`/api/jobs/${id}/download?format=${format}`);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Download is not ready.");
       return;
     }
     window.location.href = data.url;
@@ -197,13 +198,11 @@ export function JobView({ id }: { id: string }) {
         <CourtPicker
           playbackUrl={playbackUrl}
           onSave={async (corners) => {
-            const res = await fetch(`/api/jobs/${id}/court`, {
+            await requestJson(`/api/jobs/${id}/court`, {
               method: "POST",
               headers: { "content-type": "application/json" },
               body: JSON.stringify({ corners }),
             });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || "Could not save the court.");
             setPickingCourt(false);
             await refresh();
           }}

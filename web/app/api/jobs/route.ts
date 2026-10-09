@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { acceptedContentType, config, contentTypeFor, extensionOf, sanitizeFilename } from "@/lib/config";
-import { abandonStaleUploads, freeForUpload, hasInflightUpload, insertUploadingJob, setUploadId, deleteJob, usedBytes } from "@/lib/jobs";
+import { freeForUpload, insertUploadingJob, replaceInflightUpload, setUploadId, deleteJob, usedBytes } from "@/lib/jobs";
 import { hitLimit } from "@/lib/limits";
 import { createUpload } from "@/lib/s3";
 import { clientIp, errorResponse, HttpError, json, readJson } from "@/lib/http";
@@ -30,10 +30,7 @@ export async function POST(req: Request) {
       throw new HttpError("That file is over the 8 GB limit.", 413);
     }
     const ip = clientIp(req);
-    await abandonStaleUploads();
-    if (await hasInflightUpload(ip)) {
-      throw new HttpError("Finish the upload already in progress before starting another.", 429, 60);
-    }
+    await replaceInflightUpload(ip);
     if (await hitLimit(`ip:${ip}`, "create_job", 60 * 60, config.jobsPerIpPerHour)) {
       throw new HttpError("Too many new games from this network. Try again in about an hour.", 429, 3600);
     }

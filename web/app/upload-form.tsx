@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
+import { describeFailure, requestJson } from "@/lib/request";
 import { formatBytes, formatHours, formatRemaining } from "@/lib/time";
 
 type Limits = {
@@ -74,20 +75,25 @@ export function UploadForm() {
       const id = created.id as string;
       if (created.mode === "blob") {
         const ext = file.name.split(".").pop()?.toLowerCase() || "mp4";
-        const blob = await upload(`sources/${id}.${ext}`, file, {
-          access: "private",
-          handleUploadUrl: "/api/blob",
-          clientPayload: JSON.stringify({ jobId: id }),
-          multipart: true,
-          onUploadProgress: ({ percentage }) => {
-            const ratio = percentage / 100;
-            setProgress(ratio);
-            const elapsed = (performance.now() - uploadStarted.current) / 1000;
-            if (ratio > 0.05 && elapsed > 2) {
-              setUploadEta((elapsed * (1 - ratio)) / ratio);
-            }
-          },
-        });
+        let blob: { url: string };
+        try {
+          blob = await upload(`sources/${id}.${ext}`, file, {
+            access: "private",
+            handleUploadUrl: "/api/blob",
+            clientPayload: JSON.stringify({ jobId: id }),
+            multipart: true,
+            onUploadProgress: ({ percentage }) => {
+              const ratio = percentage / 100;
+              setProgress(ratio);
+              const elapsed = (performance.now() - uploadStarted.current) / 1000;
+              if (ratio > 0.05 && elapsed > 2) {
+                setUploadEta((elapsed * (1 - ratio)) / ratio);
+              }
+            },
+          });
+        } catch (error) {
+          throw new Error(describeFailure(error, "Upload the video to storage", "/api/blob"));
+        }
         await postJson(`/api/jobs/${id}/complete`, { blobUrl: blob.url });
         router.push(`/jobs/${id}`);
         return;
@@ -105,14 +111,28 @@ export function UploadForm() {
           const start = (partNumber - 1) * partSize;
           const slice = file.slice(start, Math.min(start + partSize, file.size), "application/octet-stream");
           let etag = "";
-          let lastError = "Upload part failed.";
+          let lastError = `Upload part ${partNumber} failed.`;
+          let storageHost = url;
+          try {
+            storageHost = new URL(url).host;
+          } catch {
+            storageHost = url;
+          }
           for (let attempt = 0; attempt < 3 && !etag; attempt += 1) {
-            const res = await fetch(url, { method: "PUT", body: slice });
+            let res: Response;
+            try {
+              res = await fetch(url, { method: "PUT", body: slice });
+            } catch (error) {
+              lastError = describeFailure(error, `Upload part ${partNumber} to ${storageHost}`, url);
+              continue;
+            }
             if (res.ok) {
               etag = res.headers.get("ETag") ?? res.headers.get("etag") ?? "";
+              if (!etag) lastError = `Upload part ${partNumber} to ${storageHost} returned ${res.status} without an ETag.`;
               break;
             }
-            lastError = `Part ${partNumber} was rejected.`;
+            const body = await res.text().catch(() => "");
+            lastError = `Upload part ${partNumber} to ${storageHost} returned ${res.status}: ${body.replace(/\s+/g, " ").slice(0, 160) || res.statusText}`;
           }
           if (!etag) throw new Error(lastError);
           etags.push({ partNumber, etag });
@@ -188,12 +208,9 @@ export function UploadForm() {
 }
 
 async function postJson(url: string, body: unknown): Promise<Record<string, unknown>> {
-  const res = await fetch(url, {
+  return requestJson(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const data = (await res.json().catch(() => ({}))) as { error?: string };
-  if (!res.ok) throw new Error(data.error || "Request failed.");
-  return data;
 }

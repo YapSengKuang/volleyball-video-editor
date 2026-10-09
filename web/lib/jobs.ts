@@ -123,12 +123,12 @@ export async function usedBytes(): Promise<number> {
   return Number(result.rows[0]?.used ?? 0);
 }
 
-export async function abandonStaleUploads(): Promise<void> {
-  const stale = await pool.query<{ id: string; source_key: string }>(
-    `SELECT id, source_key FROM jobs
-     WHERE status = 'uploading' AND created_at < now() - interval '2 hours'`,
+export async function replaceInflightUpload(ip: string): Promise<void> {
+  const existing = await pool.query<{ id: string; source_key: string }>(
+    "SELECT id, source_key FROM jobs WHERE client_ip = $1 AND status = 'uploading'",
+    [ip],
   );
-  for (const row of stale.rows) {
+  for (const row of existing.rows) {
     await deleteStored(row.source_key);
     await deleteJob(row.id);
   }

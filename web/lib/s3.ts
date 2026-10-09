@@ -3,6 +3,7 @@ import {
   CreateMultipartUploadCommand,
   DeleteObjectCommand,
   HeadObjectCommand,
+  PutBucketCorsCommand,
   S3Client,
   UploadPartCommand,
   GetObjectCommand,
@@ -29,7 +30,44 @@ function makeClient(endpoint: string): S3Client {
 const internal = makeClient(config.s3Endpoint);
 const presign = makeClient(config.s3PublicEndpoint);
 
+const uploadOrigins = [
+  "http://localhost:3010",
+  "http://127.0.0.1:3010",
+  "https://volleyball-rally-editor.vercel.app",
+  ...(process.env.WEB_ORIGIN ?? "").split(",").map((origin) => origin.trim()).filter(Boolean),
+];
+
+let corsReady: Promise<void> | null = null;
+
+function ensureUploadCors(): Promise<void> {
+  if (config.useBlob) return Promise.resolve();
+  corsReady ??= internal
+    .send(
+      new PutBucketCorsCommand({
+        Bucket: config.s3Bucket,
+        CORSConfiguration: {
+          CORSRules: [
+            {
+              AllowedOrigins: [...new Set(uploadOrigins)],
+              AllowedMethods: ["GET", "PUT", "HEAD"],
+              AllowedHeaders: ["*"],
+              ExposeHeaders: ["ETag", "Content-Length", "Content-Range", "Accept-Ranges"],
+              MaxAgeSeconds: 3600,
+            },
+          ],
+        },
+      }),
+    )
+    .then(() => undefined)
+    .catch((error: unknown) => {
+      corsReady = null;
+      throw error;
+    });
+  return corsReady;
+}
+
 export async function createUpload(key: string, contentType: string): Promise<string> {
+  await ensureUploadCors();
   const created = await internal.send(
     new CreateMultipartUploadCommand({
       Bucket: config.s3Bucket,
